@@ -12,7 +12,22 @@ import processing
 SEED = 3
 
 
-def build_dataset(raw_data_folder, sample_info, sampling_frequency, baseline_wander_removal_filter=False):
+def partition_data(raw_data_folder, labels_file_path, sampling_frequency, output_dir, test_set_size, n_splits,
+                   baseline_wander_removal_filter=False, seed=None):
+    sample_info = pd.read_csv(labels_file_path, sep=',', header=None)
+
+    dataset = _build_dataset(raw_data_folder, sample_info, sampling_frequency,
+                             baseline_wander_removal_filter=baseline_wander_removal_filter)
+
+    X_train, X_test, y_train, y_test = train_test_split(dataset['signal'], dataset['label'], test_size=test_set_size,
+                                                        shuffle=True, stratify=dataset['label'], random_state=seed)
+
+    _write_test_set(X=X_test, y=y_test, output_dir=output_dir)
+
+    _write_dataset_splits(X=X_train, y=y_train, output_dir=output_dir, n_splits=n_splits)
+
+
+def _build_dataset(raw_data_folder, sample_info, sampling_frequency, baseline_wander_removal_filter=False):
     dataset = pd.DataFrame(columns=['signal', 'label'])
     tot_records = sample_info.shape[0]
     i = 0
@@ -33,21 +48,6 @@ def build_dataset(raw_data_folder, sample_info, sampling_frequency, baseline_wan
             print("{}/{}".format(i + 1, tot_records))
         i += 1
     return dataset
-
-
-def partition_data(raw_data_folder, labels_file_path, sampling_frequency, output_dir, test_set_size, n_splits,
-                   baseline_wander_removal_filter=False, seed=None):
-    sample_info = pd.read_csv(labels_file_path, sep=',', header=None)
-
-    dataset = build_dataset(raw_data_folder, sample_info, sampling_frequency,
-                            baseline_wander_removal_filter=baseline_wander_removal_filter)
-
-    X_train, X_test, y_train, y_test = train_test_split(dataset['signal'], dataset['label'], test_size=test_set_size,
-                                                        shuffle=True, stratify=dataset['label'], random_state=seed)
-
-    _write_test_set(X=X_test, y=y_test, output_dir=output_dir)
-
-    _write_dataset_splits(X=X_train, y=y_train, output_dir=output_dir, n_splits=n_splits)
 
 
 def _bytes_feature(value):
